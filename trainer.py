@@ -4,6 +4,7 @@ import os
 from glob import glob
 from tqdm import trange
 from itertools import chain
+import numpy as np
 
 import torch
 from torch import nn
@@ -183,8 +184,11 @@ class Trainer(object):
             x_A, x_B = self._get_variable(x_A), self._get_variable(x_B)
 
             batch_size = x_A.size(0)
-            real_tensor.data.resize_(batch_size).fill_(real_label)
-            fake_tensor.data.resize_(batch_size).fill_(fake_label)
+            with torch.no_grad():
+              real_tensor.resize_(batch_size).fill_(real_label)
+              fake_tensor.resize_(batch_size).fill_(fake_label)
+              real_tensor = real_tensor.unsqueeze(-1)
+              fake_tensor = fake_tensor.unsqueeze(-1)
 
             # update D network
             self.D_A.zero_grad()
@@ -244,15 +248,15 @@ class Trainer(object):
 
             if step % self.log_step == 0:
                 print("[{}/{}] Loss_D: {:.4f} Loss_G: {:.4f}". \
-                      format(step, self.max_step, l_d.data[0], l_g.data[0]))
+                      format(step, self.max_step, l_d.item(), l_g.item()))
 
                 print("[{}/{}] l_d_A_real: {:.4f} l_d_A_fake: {:.4f}, l_d_B_real: {:.4f}, l_d_B_fake: {:.4f}". \
-                      format(step, self.max_step, l_d_A_real.data[0], l_d_A_fake.data[0],
-                             l_d_B_real.data[0], l_d_B_fake.data[0]))
+                      format(step, self.max_step, l_d_A_real.item(), l_d_A_fake.item(),
+                             l_d_B_real.item(), l_d_B_fake.item()))
 
                 print("[{}/{}] l_const_A: {:.4f} l_const_B: {:.4f}, l_gan_A: {:.4f}, l_gan_B: {:.4f}". \
-                      format(step, self.max_step, l_const_A.data[0], l_const_B.data[0],
-                             l_gan_A.data[0], l_gan_B.data[0]))
+                      format(step, self.max_step, l_const_A.item(), l_const_B.item(),
+                             l_gan_A.item(), l_gan_B.item()))
 
                 self.generate_with_A(valid_x_A, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_B, self.model_dir, idx=step)
